@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store Sales & Profitability Dashboard - Executive Dark Edition</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background-color: #0b1120;
+      color: #f8fafc;
+    }
+    .dark-card {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+    }
+    .neon-cyan {
+      color: #00d2ff;
+      text-shadow: 0 0 12px rgba(0, 210, 255, 0.3);
+    }
+    .bar-profit {
+      background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+    }
+    .bar-loss {
+      background: linear-gradient(90deg, #ef4444 0%, #b91c1c 100%);
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+    }
+    .bar-seasonal {
+      background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+    }
+    .bar-regular {
+      background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+    }
+  </style>
+</head>
+<body class="antialiased p-4 md:p-8 font-sans selection:bg-cyan-500 selection:text-white">
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Navigation & Header -->
+    <header class="dark-card rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-700/60">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-cyan-950 border border-cyan-800/80 rounded-xl text-cyan-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-2xl font-extrabold text-white tracking-tight">Store Sales & Profitability Dashboard</h1>
+              <span class="bg-cyan-950 text-cyan-400 border border-cyan-700/60 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Executive Dark Pro</span>
+            </div>
+            <p class="text-slate-400 text-xs mt-1">Multi-Year Retail Transaction Analytics | MySQL 8.0 • Power BI Desktop • DAX Modeling • Excel</p>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 bg-slate-900/80 p-2 rounded-xl border border-slate-700">
+        <label for="regionFilter" class="text-xs font-bold uppercase text-slate-400 pl-2">Filter Territory:</label>
+        <select id="regionFilter" onchange="filterRegion()" class="bg-slate-800 border border-slate-600 text-cyan-300 text-sm rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block p-2 font-medium">
+          <option value="All">All Territories (National)</option>
+          <option value="West">West Region (⭐ Top Revenue & Margin)</option>
+          <option value="East">East Region (High Profit Engine)</option>
+          <option value="Central">Central Region (⚠️ Operational Loss Leaks)</option>
+          <option value="South">South Region</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- Executive KPI Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <!-- Total Revenue -->
+      <div class="dark-card rounded-xl p-5 relative overflow-hidden group hover:border-cyan-500 transition-all">
+        <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-cyan-500/10 rounded-full blur-xl"></div>
+        <span class="text-xs font-semibold uppercase text-slate-400">Total Revenue</span>
+        <div class="text-2xl font-extrabold text-white mt-1 neon-cyan" id="kpiSales">$2,297,201</div>
+        <div class="flex items-center text-xs font-medium text-emerald-400 mt-2">
+          <span>▲ +20.4% YoY Growth</span>
+        </div>
+      </div>
+
+      <!-- Total Net Profit -->
+      <div class="dark-card rounded-xl p-5 relative overflow-hidden group hover:border-emerald-500 transition-all">
+        <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl"></div>
+        <span class="text-xs font-semibold uppercase text-slate-400">Total Net Profit</span>
+        <div class="text-2xl font-extrabold text-emerald-400 mt-1" id="kpiProfit">$286,397</div>
+        <div class="flex items-center text-xs font-medium text-slate-400 mt-2">
+          <span>Net Bottom-Line Margin</span>
+        </div>
+      </div>
+
+      <!-- Profit Margin % -->
+      <div class="dark-card rounded-xl p-5 relative overflow-hidden group hover:border-blue-500 transition-all">
+        <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-blue-500/10 rounded-full blur-xl"></div>
+        <span class="text-xs font-semibold uppercase text-slate-400">Profit Margin %</span>
+        <div class="text-2xl font-extrabold text-blue-400 mt-1" id="kpiMargin">12.47%</div>
+        <div class="flex items-center text-xs font-medium text-slate-400 mt-2">
+          <span>Target Benchmark: &gt; 10.0%</span>
+        </div>
+      </div>
+
+      <!-- Total Orders -->
+      <div class="dark-card rounded-xl p-5 relative overflow-hidden group hover:border-indigo-500 transition-all">
+        <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl"></div>
+        <span class="text-xs font-semibold uppercase text-slate-400">Total Orders Placed</span>
+        <div class="text-2xl font-extrabold text-indigo-300 mt-1" id="kpiOrders">5,009</div>
+        <div class="flex items-center text-xs font-medium text-slate-400 mt-2">
+          <span>793 Active Accounts</span>
+        </div>
+      </div>
+
+      <!-- Avg Order Value -->
+      <div class="dark-card rounded-xl p-5 relative overflow-hidden group hover:border-amber-500 transition-all">
+        <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-amber-500/10 rounded-full blur-xl"></div>
+        <span class="text-xs font-semibold uppercase text-slate-400">Avg Order Value (AOV)</span>
+        <div class="text-2xl font-extrabold text-amber-400 mt-1" id="kpiAov">$458.61</div>
+        <div class="flex items-center text-xs font-medium text-slate-400 mt-2">
+          <span>37,873 Shipped Units</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle Row: Monthly Trend (Q4 Surge) & Sub-Category Profit Leaks -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Monthly Sales Trend Chart (7 cols) -->
+      <div class="lg:col-span-7 dark-card rounded-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <span>Monthly Revenue & Seasonality Trends</span>
+            </h2>
+            <p class="text-xs text-slate-400">Historical surge during Q4 holiday shopping (November & December)</p>
+          </div>
+          <span class="bg-amber-950 text-amber-300 border border-amber-800 text-xs font-bold px-2.5 py-1 rounded-lg">Q4 Holiday Peak</span>
+        </div>
+
+        <!-- Monthly Progress Bars -->
+        <div class="space-y-2 pt-2" id="monthlyBarsContainer">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="p-3.5 bg-amber-950/40 border border-amber-800/60 rounded-xl text-xs text-amber-200 flex items-start gap-2">
+          <span class="text-amber-400 font-bold">⚡ Key Insight:</span>
+          <span>November ($352.5K) and December ($325.3K) combined account for <strong>29.5%</strong> of entire annual revenue. Operating margins peak in December ($43.4K profit) due to high basket sizes.</span>
+        </div>
+      </div>
+
+      <!-- Sub-Category Profit Leak Analysis (5 cols) -->
+      <div class="lg:col-span-5 dark-card rounded-2xl p-6 space-y-4">
+        <div>
+          <h2 class="text-lg font-bold text-white">Product Profit Leaks vs Top Drivers</h2>
+          <p class="text-xs text-slate-400">Highlighting severe net loss sub-categories (Tables, Bookcases) vs top engines</p>
+        </div>
+
+        <div class="space-y-3 pt-1" id="subcatContainer">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="p-3.5 bg-red-950/40 border border-red-800/60 rounded-xl text-xs text-red-200 flex items-start gap-2">
+          <span class="text-red-400 font-bold">🚨 Profit Leak Root Cause:</span>
+          <span>Tables generated $207K in gross revenue but caused a net operating deficit of <strong>-$17,725</strong> due to severe discounting (26.1% avg discount).</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Row: Regional Disparities & Discounting Degradation -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Regional Performance Table (6 cols) -->
+      <div class="lg:col-span-6 dark-card rounded-2xl p-6 space-y-4">
+        <div>
+          <h2 class="text-lg font-bold text-white">Regional Disparity & Central Deficit</h2>
+          <p class="text-xs text-slate-400">West dominates top-line; Central territory is dragged down by heavy state deficits</p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-700 text-slate-400 uppercase font-semibold">
+                <th class="py-2.5">Region</th>
+                <th class="py-2.5">Regional Lead</th>
+                <th class="py-2.5 text-right">Revenue</th>
+                <th class="py-2.5 text-right">Profit</th>
+                <th class="py-2.5 text-right">Margin %</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <tr class="hover:bg-slate-800/60">
+                <td class="py-2.5 font-bold text-cyan-300">West</td>
+                <td class="py-2.5 text-slate-300">Anna Andreadi</td>
+                <td class="py-2.5 text-right font-medium text-slate-200">$725,458</td>
+                <td class="py-2.5 text-right font-bold text-emerald-400">$108,418</td>
+                <td class="py-2.5 text-right font-semibold text-emerald-400">14.9%</td>
+              </tr>
+              <tr class="hover:bg-slate-800/60">
+                <td class="py-2.5 font-bold text-cyan-300">East</td>
+                <td class="py-2.5 text-slate-300">Chuck Magee</td>
+                <td class="py-2.5 text-right font-medium text-slate-200">$678,781</td>
+                <td class="py-2.5 text-right font-bold text-emerald-400">$91,523</td>
+                <td class="py-2.5 text-right font-semibold text-emerald-400">13.5%</td>
+              </tr>
+              <tr class="hover:bg-slate-800/60 bg-red-950/20">
+                <td class="py-2.5 font-bold text-red-400">Central</td>
+                <td class="py-2.5 text-slate-300">Kelly Williams</td>
+                <td class="py-2.5 text-right font-medium text-slate-200">$501,240</td>
+                <td class="py-2.5 text-right font-bold text-amber-400">$39,706</td>
+                <td class="py-2.5 text-right font-semibold text-amber-400">7.9%</td>
+              </tr>
+              <tr class="hover:bg-slate-800/60">
+                <td class="py-2.5 font-bold text-cyan-300">South</td>
+                <td class="py-2.5 text-slate-300">Cassandra Brandow</td>
+                <td class="py-2.5 text-right font-medium text-slate-200">$391,722</td>
+                <td class="py-2.5 text-right font-bold text-emerald-400">$46,749</td>
+                <td class="py-2.5 text-right font-semibold text-emerald-400">11.9%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Central Deficit Deep Dive -->
+        <div class="p-3 bg-slate-900/80 rounded-xl border border-red-900/50 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-red-400 text-xs">⚠️ Central Region Operational Losses by State:</span>
+            <span class="text-[10px] text-slate-400">Over-discounted corporate contracts</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="bg-slate-800/80 p-2.5 rounded-lg border border-red-800/40">
+              <span class="font-semibold text-slate-200">Texas</span>
+              <span class="text-red-400 font-extrabold block text-sm">-$25,729.36 Net Loss</span>
+              <span class="text-[10px] text-slate-400">Sales: $170.2K | Avg Disc: 37.1%</span>
+            </div>
+            <div class="bg-slate-800/80 p-2.5 rounded-lg border border-red-800/40">
+              <span class="font-semibold text-slate-200">Illinois</span>
+              <span class="text-red-400 font-extrabold block text-sm">-$12,607.89 Net Loss</span>
+              <span class="text-[10px] text-slate-400">Sales: $80.2K | Avg Disc: 39.0%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Discount Elasticity & Margin Degradation (6 cols) -->
+      <div class="lg:col-span-6 dark-card rounded-2xl p-6 space-y-4">
+        <div>
+          <h2 class="text-lg font-bold text-white">Discount Elasticity & Margin Decay</h2>
+          <p class="text-xs text-slate-400">Operating margins plummet into negative territory once discounts exceed 20%</p>
+        </div>
+
+        <div class="space-y-3 pt-2">
+          <!-- Tier 1 -->
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-medium text-slate-300">0% (Full Price - Premium Margin)</span>
+              <span class="font-bold text-emerald-400">+29.8% Operating Margin</span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-3">
+              <div class="bg-emerald-500 h-3 rounded-full" style="width: 85%"></div>
+            </div>
+          </div>
+
+          <!-- Tier 2 -->
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-medium text-slate-300">1% - 10% Discount (Controlled Promo)</span>
+              <span class="font-bold text-emerald-400">+19.5% Operating Margin</span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-3">
+              <div class="bg-emerald-400 h-3 rounded-full" style="width: 62%"></div>
+            </div>
+          </div>
+
+          <!-- Tier 3 -->
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-medium text-slate-300">11% - 20% Discount (Break-Even Threshold)</span>
+              <span class="font-bold text-amber-400">+11.2% Thin Margin</span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-3">
+              <div class="bg-amber-400 h-3 rounded-full" style="width: 38%"></div>
+            </div>
+          </div>
+
+          <!-- Tier 4 -->
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-semibold text-red-400">21% - 40% Discount (Loss Zone)</span>
+              <span class="font-bold text-red-400">-14.3% Deficit</span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-3">
+              <div class="bg-red-400 h-3 rounded-full" style="width: 45%"></div>
+            </div>
+          </div>
+
+          <!-- Tier 5 -->
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-semibold text-red-500">&gt; 40% Clearance (Severe Bleed)</span>
+              <span class="font-bold text-red-500">-86.4% Catastrophic Loss</span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-3">
+              <div class="bg-red-600 h-3 rounded-full" style="width: 95%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3.5 bg-cyan-950/40 border border-cyan-800/60 rounded-xl text-xs text-cyan-200">
+          <strong>Strategic Action:</strong> Establish strict discount governance in Power BI. Floor margins at 20% max discount to immediately recover an estimated <strong>$41,800+</strong> in lost bottom-line profits annually.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Dark Dashboard Footer -->
+    <footer class="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+      <div>Project: <code class="text-slate-300">Store Sales & Profitability Data Analysis</code> | Theme: <span class="text-cyan-400 font-semibold">Executive Dark Pro</span></div>
+      <div class="flex gap-4">
+        <span>PBIX: <code class="text-slate-300">power_bi/Sales_Profitability_DB.pbix</code></span>
+        <span>Theme: <code class="text-slate-300">power_bi/Executive_Dark_Theme.json</code></span>
+        <span>SQL: <code class="text-slate-300">sql_scripts/sales_queries.sql</code></span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    const monthlyData = [
+      { month: 'Jan', sales: 94925, profit: 9134, max: 360000 },
+      { month: 'Feb', sales: 59751, profit: 10295, max: 360000 },
+      { month: 'Mar', sales: 205005, profit: 28595, max: 360000 },
+      { month: 'Apr', sales: 137762, profit: 11587, max: 360000 },
+      { month: 'May', sales: 155029, profit: 22411, max: 360000 },
+      { month: 'Jun', sales: 152719, profit: 21286, max: 360000 },
+      { month: 'Jul', sales: 147238, profit: 13833, max: 360000 },
+      { month: 'Aug', sales: 159044, profit: 21777, max: 360000 },
+      { month: 'Sep', sales: 307650, profit: 36857, max: 360000 },
+      { month: 'Oct', sales: 200323, profit: 31784, max: 360000 },
+      { month: 'Nov', sales: 352461, profit: 35468, max: 360000, highlight: true },
+      { month: 'Dec', sales: 325294, profit: 43369, max: 360000, highlight: true }
+    ];
+
+    const subcats = [
+      { name: 'Copiers', profit: 55618, margin: '37.2%', status: 'profit' },
+      { name: 'Phones', profit: 44516, margin: '13.5%', status: 'profit' },
+      { name: 'Accessories', profit: 41937, margin: '25.1%', status: 'profit' },
+      { name: 'Paper', profit: 34054, margin: '43.4%', status: 'profit' },
+      { name: 'Supplies', profit: -1189, margin: '-2.5%', status: 'loss' },
+      { name: 'Bookcases', profit: -3473, margin: '-3.0%', status: 'loss' },
+      { name: 'Tables', profit: -17725, margin: '-8.6%', status: 'loss' }
+    ];
+
+    function renderMonthly() {
+      const container = document.getElementById('monthlyBarsContainer');
+      container.innerHTML = monthlyData.map(d => {
+        const pct = ((d.sales / 360000) * 100).toFixed(1);
+        const barColor = d.highlight ? 'bar-seasonal' : 'bar-regular';
+        const labelStyle = d.highlight ? 'font-bold text-amber-300' : 'text-slate-300';
+        return `
+          <div class="flex items-center gap-3 text-xs">
+            <span class="w-8 font-medium ${labelStyle}">${d.month}</span>
+            <div class="flex-1 bg-slate-800 rounded-full h-3 relative">
+              <div class="${barColor} h-3 rounded-full" style="width: ${pct}%"></div>
+            </div>
+            <span class="w-16 text-right font-medium text-slate-200">$${(d.sales/1000).toFixed(1)}k</span>
+            <span class="w-16 text-right font-semibold text-emerald-400">+$${(d.profit/1000).toFixed(1)}k</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderSubcats() {
+      const container = document.getElementById('subcatContainer');
+      container.innerHTML = subcats.map(s => {
+        const isLoss = s.profit < 0;
+        const widthPct = Math.min(100, Math.abs(s.profit) / 55618 * 100).toFixed(1);
+        const barClass = isLoss ? 'bar-loss' : 'bar-profit';
+        const textClass = isLoss ? 'text-red-400 font-bold' : 'text-emerald-400 font-bold';
+        const prefix = isLoss ? '-$' : '+$';
+        return `
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-medium text-slate-300">${s.name}</span>
+              <span class="${textClass}">${prefix}${Math.abs(s.profit).toLocaleString()} (${s.margin})</span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-2.5">
+              <div class="${barClass} h-2.5 rounded-full" style="width: ${widthPct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterRegion() {
+      const reg = document.getElementById('regionFilter').value;
+      const salesEl = document.getElementById('kpiSales');
+      const profitEl = document.getElementById('kpiProfit');
+      const marginEl = document.getElementById('kpiMargin');
+      const ordersEl = document.getElementById('kpiOrders');
+      const aovEl = document.getElementById('kpiAov');
+
+      if (reg === 'West') {
+        salesEl.innerText = '$725,458';
+        profitEl.innerText = '$108,418';
+        marginEl.innerText = '14.94%';
+        ordersEl.innerText = '1,598';
+        aovEl.innerText = '$453.98';
+      } else if (reg === 'East') {
+        salesEl.innerText = '$678,781';
+        profitEl.innerText = '$91,523';
+        marginEl.innerText = '13.48%';
+        ordersEl.innerText = '1,452';
+        aovEl.innerText = '$467.48';
+      } else if (reg === 'Central') {
+        salesEl.innerText = '$501,240';
+        profitEl.innerText = '$39,706';
+        marginEl.innerText = '7.92%';
+        ordersEl.innerText = '1,123';
+        aovEl.innerText = '$446.34';
+      } else if (reg === 'South') {
+        salesEl.innerText = '$391,722';
+        profitEl.innerText = '$46,749';
+        marginEl.innerText = '11.93%';
+        ordersEl.innerText = '836';
+        aovEl.innerText = '$468.57';
+      } else {
+        salesEl.innerText = '$2,297,201';
+        profitEl.innerText = '$286,397';
+        marginEl.innerText = '12.47%';
+        ordersEl.innerText = '5,009';
+        aovEl.innerText = '$458.61';
+      }
+    }
+
+    renderMonthly();
+    renderSubcats();
+  </script>
+</body>
+</html>

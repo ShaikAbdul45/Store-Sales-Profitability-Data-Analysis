@@ -1,0 +1,154 @@
+// ==============================================================================
+// 📊 STORE SALES & PROFITABILITY DASHBOARD - DAX MEASURES REPOSITORY
+// 🛠️ Tool: Power BI Desktop / Analysis Services / Tabular Model
+// 📁 File: dax_measures/all_measures.dax
+// ==============================================================================
+
+// ==============================================================================
+// 1. DATE TABLE GENERATION (CALCULATED TABLE)
+// ==============================================================================
+DimDate = 
+ADDCOLUMNS(
+    CALENDAR(MIN(Orders[Order_Date]), MAX(Orders[Order_Date])),
+    "Year", YEAR([Date]),
+    "Year Month Number", YEAR([Date]) * 100 + MONTH([Date]),
+    "Month Number", MONTH([Date]),
+    "Month Name", FORMAT([Date], "mmmm"),
+    "Month Short", FORMAT([Date], "mmm"),
+    "Quarter", "Q" & FORMAT([Date], "q"),
+    "Year Quarter", FORMAT([Date], "yyyy") & "-Q" & FORMAT([Date], "q"),
+    "Day of Week Number", WEEKDAY([Date], 2),
+    "Day of Week", FORMAT([Date], "dddd"),
+    "Day of Week Short", FORMAT([Date], "ddd"),
+    "Is Weekend", IF(WEEKDAY([Date], 2) IN {6, 7}, "Weekend", "Weekday")
+)
+
+
+// ==============================================================================
+// 2. CORE EXECUTIVE KPI MEASURES
+// ==============================================================================
+
+// 2.1 Total Revenue
+Total Sales = 
+SUM(Orders[Sales])
+
+// 2.2 Total Cost of Goods Sold (COGS)
+Total Cost = 
+[Total Sales] - [Total Profit]
+
+// 2.3 Total Profit
+Total Profit = 
+SUM(Orders[Profit])
+
+// 2.4 Floating Profit Margin Percentage
+Profit Margin % = 
+DIVIDE([Total Profit], [Total Sales], 0)
+
+// 2.5 Total Units Sold
+Total Quantity = 
+SUM(Orders[Quantity])
+
+// 2.6 Total Distinct Orders
+Total Orders = 
+DISTINCTCOUNT(Orders[Order_ID])
+
+// 2.7 Total Customers
+Total Customers = 
+DISTINCTCOUNT(Orders[Customer_ID])
+
+// 2.8 Average Order Value (AOV)
+Average Order Value = 
+DIVIDE([Total Sales], [Total Orders], 0)
+
+// 2.9 Average Discount Percentage
+Average Discount % = 
+AVERAGE(Orders[Discount])
+
+// 2.10 Order Return Rate Percentage
+Total Orders Returned = 
+CALCULATE(
+    DISTINCTCOUNT(Orders[Order_ID]),
+    USERELATIONSHIP(Orders[Order_ID], Returns[Order_ID]),
+    NOT(ISBLANK(Returns[Order_ID]))
+)
+
+Return Rate % = 
+DIVIDE([Total Orders Returned], [Total Orders], 0)
+
+
+// ==============================================================================
+// 3. TIME-SERIES & COMPARATIVE INTELLIGENCE MEASURES
+// ==============================================================================
+
+// 3.1 Year-to-Date (YTD) Sales
+Sales YTD = 
+TOTALYTD([Total Sales], DimDate[Date])
+
+// 3.2 Year-to-Date (YTD) Profit
+Profit YTD = 
+TOTALYTD([Total Profit], DimDate[Date])
+
+// 3.3 Prior Year / Same Period Last Year (SPLY) Sales
+Sales SPLY = 
+CALCULATE(
+    [Total Sales],
+    SAMEPERIODLASTYEAR(DimDate[Date])
+)
+
+// 3.4 Prior Year / Same Period Last Year (SPLY) Profit
+Profit SPLY = 
+CALCULATE(
+    [Total Profit],
+    SAMEPERIODLASTYEAR(DimDate[Date])
+)
+
+// 3.5 Year-over-Year (YoY) Sales Variance ($)
+YoY Sales Growth = 
+[Total Sales] - [Sales SPLY]
+
+// 3.6 Year-over-Year (YoY) Sales Growth Rate (%)
+YoY Sales Growth % = 
+DIVIDE([YoY Sales Growth], [Sales SPLY], 0)
+
+// 3.7 Year-over-Year (YoY) Profit Variance ($)
+YoY Profit Growth = 
+[Total Profit] - [Profit SPLY]
+
+// 3.8 Year-over-Year (YoY) Profit Growth Rate (%)
+YoY Profit Growth % = 
+DIVIDE([YoY Profit Growth], [Profit SPLY], 0)
+
+// 3.9 Quarter-to-Date (QTD) Sales
+Sales QTD = 
+TOTALQTD([Total Sales], DimDate[Date])
+
+// 3.10 Month-to-Date (MTD) Sales
+Sales MTD = 
+TOTALMTD([Total Sales], DimDate[Date])
+
+
+// ==============================================================================
+// 4. CONDITIONAL FORMATTING & DYNAMIC KPI STATUS MEASURES
+// ==============================================================================
+
+// 4.1 Profit Status Color (Hex code for cards and tables)
+Profit Status Color = 
+IF(
+    [Total Profit] < 0,
+    "#E53E3E", // High-visibility Alert Red
+    IF([Profit Margin %] >= 0.15, "#38A169", "#DD6B20") // Green for >= 15%, Amber otherwise
+)
+
+// 4.2 Dynamic KPI Card Subtitle
+Sales Growth KPI Subtitle = 
+VAR GrowthRate = [YoY Sales Growth %]
+RETURN
+IF(
+    ISBLANK([Sales SPLY]),
+    "Baseline Year",
+    IF(
+        GrowthRate >= 0,
+        "▲ +" & FORMAT(GrowthRate, "0.0%") & " vs SPLY",
+        "▼ " & FORMAT(GrowthRate, "0.0%") & " vs SPLY"
+    )
+)
